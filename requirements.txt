@@ -11,15 +11,13 @@ networkx>=2.8.0
 matplotlib>=3.6.0
 plotly>=5.10.0
 
-# Animation
+# Animation and GIF export
 streamlit-agraph>=0.0.40
 streamlit-elements>=0.1.0
 streamlit-lottie>=0.0.3
 plotly-express>=0.4.0
-
-# UI enhancements
-streamlit-option-menu>=0.3.2
-streamlit-extras>=0.2.0
+pillow>=9.0.0
+imageio>=2.20.0
 
 # Testing
 pytest>=7.0.0

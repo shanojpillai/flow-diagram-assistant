@@ -125,6 +125,17 @@ def main():
             step=0.1
         )
         
+        # GIF export settings
+        st.markdown("---")
+        st.markdown("<div class='sub-header'>GIF Export Settings</div>", unsafe_allow_html=True)
+        st.session_state.animation_duration = st.slider(
+            "GIF Duration (seconds)",
+            min_value=2.0,
+            max_value=10.0,
+            value=5.0,
+            step=0.5
+        )
+        
         # About section
         st.markdown("---")
         st.markdown("<div class='sub-header'>About</div>", unsafe_allow_html=True)
@@ -216,7 +227,7 @@ def main():
             st.markdown("</div>", unsafe_allow_html=True)
         
         # Export options
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             st.download_button(
                 "Download as PNG",
@@ -230,6 +241,21 @@ def main():
                 data=diagram_generator.export_as_svg(st.session_state.current_diagram),
                 file_name="flow_diagram.svg",
                 mime="image/svg+xml"
+            )
+        with col3:
+            from src.gif_export import export_as_gif
+            
+            animation_duration = st.session_state.get("animation_duration", 5.0)
+            
+            st.download_button(
+                "Download as GIF",
+                data=export_as_gif(
+                    st.session_state.current_diagram,
+                    duration=animation_duration,
+                    fps=10
+                ),
+                file_name="flow_diagram.gif",
+                mime="image/gif"
             )
 
 if __name__ == "__main__":
