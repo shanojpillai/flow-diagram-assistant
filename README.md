@@ -21,7 +21,7 @@ A Python application that generates animated flow diagrams from natural language
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/flow-diagram-assistant.git
+   git clone https://github.com/shanojpillai/flow-diagram-assistant.git
    cd flow-diagram-assistant
    ```
 
