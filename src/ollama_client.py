@@ -155,32 +155,26 @@ class OllamaClient:
         
         response = self.generate(prompt, system_prompt)
         
-        # Extract JSON from the response
-        try:
-            # Find JSON-like content in the response
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
-            
-            if json_start >= 0 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                self.logger.info(f"Extracted JSON: {json_str}")
-                diagram_data = json.loads(json_str)
-                
-                # Validate the basic structure
-                required_keys = ["nodes", "edges", "title"]
-                if all(key in diagram_data for key in required_keys):
-                    return diagram_data
-                else:
-                    missing = [key for key in required_keys if key not in diagram_data]
-                    self.logger.error(f"Missing required keys in diagram data: {missing}")
-            
-            # If we couldn't parse JSON or it's invalid, try to create a basic structure
-            self.logger.warning("Could not extract valid JSON from response, creating fallback structure")
-            return self._create_fallback_diagram(description, response)
-            
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Failed to parse JSON from Ollama response: {e}")
-            return self._create_fallback_diagram(description, response)
+        # Log the full response for debugging
+        self.logger.info(f"Full response: {response}")
+        
+        # Extract JSON using the improved method
+        diagram_data = self._extract_json_content(response)
+        
+        if diagram_data:
+            # Validate the basic structure
+            required_keys = ["nodes", "edges", "title"]
+            if all(key in diagram_data for key in required_keys):
+                return diagram_data
+            else:
+                missing = [key for key in required_keys if key not in diagram_data]
+                self.logger.error(f"Missing required keys in diagram data: {missing}")
+        else:
+            self.logger.error("Could not extract valid JSON from response")
+        
+        # If we couldn't parse JSON or it's invalid, create a fallback structure
+        self.logger.warning("Creating fallback diagram structure")
+        return self._create_fallback_diagram(description, response)
     
     def _create_fallback_diagram(self, description: str, response: str) -> Dict[str, Any]:
         """
@@ -284,3 +278,47 @@ class OllamaClient:
             "description": description[:100] + "...",
             "animations": animations
         }
+    
+    def _extract_json_content(self, text: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract JSON content from text, handling various formats and issues
+        
+        Args:
+            text: Text that may contain JSON
+            
+        Returns:
+            dict: Parsed JSON object or None if parsing fails
+        """
+        import re
+        
+        # Try to find JSON using regex pattern
+        json_pattern = r'(\{[\s\S]*\})'
+        matches = re.findall(json_pattern, text)
+        
+        for potential_json in matches:
+            try:
+                # Try to parse the potential JSON
+                result = json.loads(potential_json)
+                # If it parsed successfully and is a dict, return it
+                if isinstance(result, dict):
+                    return result
+            except json.JSONDecodeError:
+                # Try to clean up common JSON issues
+                try:
+                    # Sometimes there are trailing commas
+                    fixed_json = re.sub(r',\s*}', '}', potential_json)
+                    fixed_json = re.sub(r',\s*]', ']', fixed_json)
+                    
+                    # Fix unquoted property names
+                    fixed_json = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', fixed_json)
+                    
+                    # Try to parse the fixed JSON
+                    result = json.loads(fixed_json)
+                    if isinstance(result, dict):
+                        return result
+                except:
+                    # If fixing failed, continue to the next potential JSON
+                    continue
+        
+        # If no valid JSON was found, return None
+        return None

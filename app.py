@@ -4,6 +4,7 @@ Flow Diagram Animation Assistant - Main Streamlit Application
 import os
 import streamlit as st
 from dotenv import load_dotenv
+from src.mermaid_generator import display_mermaid, export_mermaid
 import time
 
 # Import local modules
@@ -227,36 +228,63 @@ def main():
             st.markdown("</div>", unsafe_allow_html=True)
         
         # Export options
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.download_button(
-                "Download as PNG",
-                data=diagram_generator.export_as_png(st.session_state.current_diagram),
-                file_name="flow_diagram.png",
-                mime="image/png"
-            )
+            try:
+                png_data = diagram_generator.export_as_png(st.session_state.current_diagram)
+                st.download_button(
+                    "Download as PNG",
+                    data=png_data,
+                    file_name="flow_diagram.png",
+                    mime="image/png"
+                )
+            except Exception as e:
+                st.error(f"PNG export error: {str(e)}")
+                
         with col2:
-            st.download_button(
-                "Download as SVG",
-                data=diagram_generator.export_as_svg(st.session_state.current_diagram),
-                file_name="flow_diagram.svg",
-                mime="image/svg+xml"
-            )
+            try:
+                svg_data = diagram_generator.export_as_svg(st.session_state.current_diagram)
+                st.download_button(
+                    "Download as SVG",
+                    data=svg_data,
+                    file_name="flow_diagram.svg",
+                    mime="image/svg+xml"
+                )
+            except Exception as e:
+                st.error(f"SVG export error: {str(e)}")
+                
         with col3:
-            from src.gif_export import export_as_gif
-            
-            animation_duration = st.session_state.get("animation_duration", 5.0)
-            
-            st.download_button(
-                "Download as GIF",
-                data=export_as_gif(
+            try:
+                from src.gif_export import export_as_gif
+                
+                animation_duration = st.session_state.get("animation_duration", 5.0)
+                
+                gif_data = export_as_gif(
                     st.session_state.current_diagram,
                     duration=animation_duration,
                     fps=10
-                ),
-                file_name="flow_diagram.gif",
-                mime="image/gif"
-            )
+                )
+                
+                st.download_button(
+                    "Download as GIF",
+                    data=gif_data,
+                    file_name="flow_diagram.gif",
+                    mime="image/gif"
+                )
+            except Exception as e:
+                st.error(f"GIF export error: {str(e)}")
+                
+        with col4:
+            try:
+                mermaid_data = export_mermaid(st.session_state.current_diagram)
+                st.download_button(
+                    "Download as Mermaid",
+                    data=mermaid_data,
+                    file_name="flow_diagram.mmd",
+                    mime="text/plain"
+                )
+            except Exception as e:
+                st.error(f"Mermaid export error: {str(e)}")
 
 if __name__ == "__main__":
     main()
