@@ -6,6 +6,8 @@ import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
 from typing import Dict, Any, List, Optional, Union
+import uuid
+import networkx as nx
 
 def animate_diagram(diagram_data: Dict[str, Any], speed: float = 1.0, container: Optional[st.container] = None) -> None:
     """
@@ -56,6 +58,9 @@ def animate_diagram(diagram_data: Dict[str, Any], speed: float = 1.0, container:
     for order in sorted(animation_groups.keys()):
         group = animation_groups[order]
         
+        # Generate a unique key for this animation frame
+        frame_key = f"animation_frame_{order}_{uuid.uuid4().hex[:8]}"
+        
         # Apply all animations in the group
         for anim in group:
             element = anim.get("element", "")
@@ -95,13 +100,14 @@ def animate_diagram(diagram_data: Dict[str, Any], speed: float = 1.0, container:
             highlighted_edges,
             pulsing_nodes
         )
-        fig_placeholder.plotly_chart(fig, use_container_width=True)
+        fig_placeholder.plotly_chart(fig, use_container_width=True, key=frame_key)
         
         # Wait based on animation duration and speed
         duration = max([anim.get("duration", 0.8) for anim in group])
         time.sleep(duration / speed)
     
-    # Final render with everything visible
+    # Final render with everything visible - use a unique key
+    final_key = f"animation_final_{uuid.uuid4().hex[:8]}"
     visible_nodes = set(G.nodes())
     visible_edges = set(G.edges())
     highlighted_nodes = set()
@@ -116,7 +122,7 @@ def animate_diagram(diagram_data: Dict[str, Any], speed: float = 1.0, container:
         highlighted_edges,
         pulsing_nodes
     )
-    fig_placeholder.plotly_chart(fig, use_container_width=True)
+    fig_placeholder.plotly_chart(fig, use_container_width=True, key=final_key)
 
 def _create_default_animations(diagram_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """

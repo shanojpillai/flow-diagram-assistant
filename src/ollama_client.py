@@ -5,6 +5,7 @@ import json
 import requests
 from typing import Dict, Any, Optional, List
 import logging
+import sys
 
 class OllamaClient:
     """Client for interacting with Ollama API running in Docker"""
@@ -15,12 +16,19 @@ class OllamaClient:
         
         Args:
             base_url: Base URL for the Ollama API (e.g., http://localhost:11434)
-            model_name: Name of the model to use (e.g., llama2, mistral)
+            model_name: Name of the model to use (e.g., llama3, mistral)
         """
         self.base_url = base_url.rstrip('/')
         self.model_name = model_name
         self.logger = logging.getLogger(__name__)
         self.generate_endpoint = f"{self.base_url}/api/generate"
+        
+        # Set up console logging for debugging
+        handler = logging.StreamHandler(sys.stdout)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO)
         
         # Verify connection
         self._verify_connection()
@@ -35,7 +43,22 @@ class OllamaClient:
         try:
             response = requests.get(f"{self.base_url}/api/tags")
             if response.status_code == 200:
+                models = response.json().get("models", [])
+                model_names = [m.get("name") for m in models]
                 self.logger.info(f"Successfully connected to Ollama API at {self.base_url}")
+                self.logger.info(f"Available models: {model_names}")
+                
+                # Check if our model exists
+                if not any(self.model_name in name for name in model_names):
+                    self.logger.warning(f"Model '{self.model_name}' not found in available models. Will attempt to use '{self.model_name}:latest' or first available model.")
+                    # If our specific model isn't available, try with :latest or use the first available model
+                    if model_names:
+                        if f"{self.model_name}:latest" in model_names:
+                            self.model_name = f"{self.model_name}:latest"
+                        else:
+                            self.model_name = model_names[0].split(':')[0]  # Use base name of first model
+                        self.logger.info(f"Using model: {self.model_name}")
+                
                 return True
             else:
                 self.logger.warning(f"Connection to Ollama API failed with status code {response.status_code}")
@@ -65,11 +88,20 @@ class OllamaClient:
             payload["system"] = system_prompt
         
         self.logger.info(f"Sending request to Ollama API with model {self.model_name}")
+        self.logger.info(f"Endpoint: {self.generate_endpoint}")
+        self.logger.info(f"Payload: {json.dumps(payload)}")
         
         try:
-            response = requests.post(self.generate_endpoint, json=payload)
-            response.raise_for_status()
+            headers = {"Content-Type": "application/json"}
+            response = requests.post(self.generate_endpoint, json=payload, headers=headers)
+            
+            self.logger.info(f"Response status code: {response.status_code}")
+            if response.status_code != 200:
+                self.logger.error(f"Error response: {response.text}")
+                response.raise_for_status()
+                
             result = response.json()
+            self.logger.info("Response received successfully")
             
             return result.get("response", "")
         except requests.RequestException as e:
@@ -131,6 +163,7 @@ class OllamaClient:
             
             if json_start >= 0 and json_end > json_start:
                 json_str = response[json_start:json_end]
+                self.logger.info(f"Extracted JSON: {json_str}")
                 diagram_data = json.loads(json_str)
                 
                 # Validate the basic structure

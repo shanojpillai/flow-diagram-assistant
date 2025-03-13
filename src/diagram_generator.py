@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.path import Path
 import plotly.graph_objects as go
+import numpy as np
 
 class DiagramGenerator:
     """Generator for flow diagrams from structured data"""
@@ -289,19 +290,32 @@ class DiagramGenerator:
                 edge_labels = {edge: edge_data["label"]}
                 nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8, ax=ax)
         
-        # Draw nodes
+        # Map of node_type to matplotlib marker symbol
+        marker_map = {
+            "process": "s",     # square
+            "decision": "d",    # diamond
+            "start": "o",       # circle
+            "end": "o",         # circle
+            "io": "s",          # use square instead of parallelogram
+            "default": "s"      # square
+        }
+        
+        # Draw nodes by type
         for node_type in set(nx.get_node_attributes(G, "node_type").values()):
             node_list = [n for n, d in G.nodes(data=True) if d.get("node_type") == node_type]
             
             if node_list:
-                node_shape = self.node_styles.get(node_type, self.node_styles["default"])["shape"]
+                # Get the appropriate marker symbol
+                marker_symbol = marker_map.get(node_type, "s")
+                
+                # Get colors for nodes
                 node_color = [G.nodes[n].get("color", "#4285F4") for n in node_list]
                 
                 nx.draw_networkx_nodes(
                     G, pos,
                     nodelist=node_list,
                     node_color=node_color,
-                    node_shape=node_shape if node_shape != "diamond" else "d",
+                    node_shape=marker_symbol,
                     node_size=700,
                     ax=ax
                 )
@@ -362,19 +376,32 @@ class DiagramGenerator:
                 edge_labels = {edge: edge_data["label"]}
                 nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8, ax=ax)
         
-        # Draw nodes
+        # Map of node_type to matplotlib marker symbol
+        marker_map = {
+            "process": "s",     # square
+            "decision": "d",    # diamond
+            "start": "o",       # circle
+            "end": "o",         # circle
+            "io": "s",          # use square instead of parallelogram
+            "default": "s"      # square
+        }
+        
+        # Draw nodes by type
         for node_type in set(nx.get_node_attributes(G, "node_type").values()):
             node_list = [n for n, d in G.nodes(data=True) if d.get("node_type") == node_type]
             
             if node_list:
-                node_shape = self.node_styles.get(node_type, self.node_styles["default"])["shape"]
+                # Get the appropriate marker symbol
+                marker_symbol = marker_map.get(node_type, "s")
+                
+                # Get colors for nodes
                 node_color = [G.nodes[n].get("color", "#4285F4") for n in node_list]
                 
                 nx.draw_networkx_nodes(
                     G, pos,
                     nodelist=node_list,
                     node_color=node_color,
-                    node_shape=node_shape if node_shape != "diamond" else "d",
+                    node_shape=marker_symbol,
                     node_size=700,
                     ax=ax
                 )
