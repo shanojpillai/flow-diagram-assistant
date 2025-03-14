@@ -118,40 +118,55 @@ class OllamaClient:
         Returns:
             Dict[str, Any]: Structured data for flow diagram generation
         """
-        system_prompt = """
-        You are a specialized flow diagram creation assistant. Your task is to convert
-        user descriptions into structured JSON that represents flow diagrams.
-        
-        Output a valid JSON object with the following structure:
-        {
-            "nodes": [
-                {"id": "node1", "label": "Node Label", "type": "process|decision|start|end|io", "description": "Optional description"},
-                ...
-            ],
-            "edges": [
-                {"from": "node1", "to": "node2", "label": "Connection Label", "type": "normal|conditional|feedback"},
-                ...
-            ],
-            "title": "Diagram Title",
-            "description": "Overall diagram description",
-            "animations": [
-                {"element": "node1", "effect": "fadeIn|highlight|pulse", "duration": 1.0, "order": 1},
-                {"element": "edge_node1_node2", "effect": "draw|highlight", "duration": 0.8, "order": 2},
-                ...
-            ]
-        }
-        
-        Ensure all IDs are unique and all references are valid. Include meaningful animations
-        that help illustrate the flow sequence.
-        """
-        
-        prompt = f"""
-        Create a detailed flow diagram from the following description:
-        
-        {description}
-        
-        Respond only with the JSON structure defined in the system prompt.
-        """
+        if "system design" in description.lower() or "system architecture" in description.lower():
+            prompt = f"""
+            Create a comprehensive system design diagram with the following components at minimum:
+            - User/Client (start node)
+            - Frontend/UI layer
+            - Backend/API layer
+            - Database/Storage (io node)
+            - Any additional components needed
+            
+            Make sure each node has a clear purpose and all connections between components are logical.
+            Ensure all node IDs referenced in edges exist in the nodes array.
+            
+            Respond only with the JSON structure.
+            """
+        else:
+            system_prompt = """
+            You are a specialized flow diagram creation assistant. Your task is to convert
+            user descriptions into structured JSON that represents flow diagrams.
+            
+            Output a valid JSON object with the following structure:
+            {
+                "nodes": [
+                    {"id": "node1", "label": "Node Label", "type": "process|decision|start|end|io", "description": "Optional description"},
+                    ...
+                ],
+                "edges": [
+                    {"from": "node1", "to": "node2", "label": "Connection Label", "type": "normal|conditional|feedback"},
+                    ...
+                ],
+                "title": "Diagram Title",
+                "description": "Overall diagram description",
+                "animations": [
+                    {"element": "node1", "effect": "fadeIn|highlight|pulse", "duration": 1.0, "order": 1},
+                    {"element": "edge_node1_node2", "effect": "draw|highlight", "duration": 0.8, "order": 2},
+                    ...
+                ]
+            }
+            
+            Ensure all IDs are unique and all references are valid. Include meaningful animations
+            that help illustrate the flow sequence.
+            """
+            
+            prompt = f"""
+            Create a detailed flow diagram from the following description:
+            
+            {description}
+            
+            Respond only with the JSON structure defined in the system prompt.
+            """
         
         response = self.generate(prompt, system_prompt)
         

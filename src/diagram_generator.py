@@ -90,13 +90,13 @@ class DiagramGenerator:
     
     def _validate_diagram_data(self, diagram_data: Dict[str, Any]) -> None:
         """
-        Validate diagram data structure
+        Validate diagram data structure and fix issues if possible
         
         Args:
             diagram_data: Diagram data to validate
             
         Raises:
-            ValueError: If diagram data is invalid
+            ValueError: If diagram data is invalid and can't be fixed
         """
         # Check required keys
         required_keys = ["nodes", "edges", "title"]
@@ -109,21 +109,32 @@ class DiagramGenerator:
             if "id" not in node:
                 raise ValueError(f"Node at index {i} is missing 'id' field")
             if "label" not in node:
-                raise ValueError(f"Node with id '{node.get('id', i)}' is missing 'label' field")
+                node["label"] = f"Node {node.get('id', i)}"
         
-        # Check edges have required fields
+        # Track node IDs and add missing ones
+        node_ids = {node["id"] for node in diagram_data["nodes"]}
+        
+        # Check edges have required fields and fix missing node references
         for i, edge in enumerate(diagram_data["edges"]):
             if "from" not in edge:
                 raise ValueError(f"Edge at index {i} is missing 'from' field")
             if "to" not in edge:
                 raise ValueError(f"Edge at index {i} is missing 'to' field")
-            
-            # Check nodes referenced by edges exist
-            node_ids = [node["id"] for node in diagram_data["nodes"]]
-            if edge["from"] not in node_ids:
-                raise ValueError(f"Edge references non-existent node id: {edge['from']}")
-            if edge["to"] not in node_ids:
-                raise ValueError(f"Edge references non-existent node id: {edge['to']}")
+                
+            # Check nodes referenced by edges exist, create if missing
+            for endpoint in ["from", "to"]:
+                node_id = edge[endpoint]
+                if node_id not in node_ids:
+                    self.logger.warning(f"Creating missing node with id: {node_id}")
+                    # Create a placeholder node
+                    new_node = {
+                        "id": node_id,
+                        "label": f"Node {node_id}",
+                        "type": "process",
+                        "description": f"Auto-generated node {node_id}"
+                    }
+                    diagram_data["nodes"].append(new_node)
+                    node_ids.add(node_id)
     
     def _calculate_layout(self, G: nx.DiGraph) -> Dict[str, List[float]]:
         """

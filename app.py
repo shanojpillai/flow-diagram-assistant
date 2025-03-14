@@ -12,6 +12,7 @@ from src.ollama_client import OllamaClient
 from src.diagram_generator import DiagramGenerator
 from src.animation import animate_diagram
 from src.utils.logger import setup_logger
+from src.system_templates import display_system_design_template, get_system_design_template
 
 # Load environment variables
 load_dotenv()
@@ -207,6 +208,13 @@ def main():
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
                 logger.error(error_msg)
     
+    # Diagram type selection
+    diagram_type = st.radio(
+        "Select Diagram Type",
+        ["Interactive", "Mermaid", "System Design Template"],
+        horizontal=True
+    )
+    
     # Display diagram if it exists
     if st.session_state.current_diagram:
         st.markdown("<div class='sub-header'>Flow Diagram</div>", unsafe_allow_html=True)
@@ -215,15 +223,20 @@ def main():
         with diagram_container:
             st.markdown("<div class='diagram-container'>", unsafe_allow_html=True)
             
-            # Show with or without animation based on settings
-            if st.session_state.animation_enabled:
-                animate_diagram(
-                    st.session_state.current_diagram, 
-                    speed=st.session_state.animation_speed,
-                    container=diagram_container
-                )
-            else:
-                diagram_generator.display(st.session_state.current_diagram)
+            if diagram_type == "Interactive":
+                # Show with or without animation based on settings
+                if st.session_state.animation_enabled:
+                    animate_diagram(
+                        st.session_state.current_diagram, 
+                        speed=st.session_state.animation_speed,
+                        container=diagram_container
+                    )
+                else:
+                    diagram_generator.display(st.session_state.current_diagram)
+            elif diagram_type == "Mermaid":
+                display_mermaid(st.session_state.current_diagram)
+            else:  # System Design Template
+                display_system_design_template(container=diagram_container)
             
             st.markdown("</div>", unsafe_allow_html=True)
         
@@ -275,16 +288,24 @@ def main():
                 st.error(f"GIF export error: {str(e)}")
                 
         with col4:
-            try:
-                mermaid_data = export_mermaid(st.session_state.current_diagram)
+            if diagram_type == "System Design Template":
                 st.download_button(
-                    "Download as Mermaid",
-                    data=mermaid_data,
-                    file_name="flow_diagram.mmd",
+                    "Download Template",
+                    data=get_system_design_template(),
+                    file_name="system_design_template.mmd",
                     mime="text/plain"
                 )
-            except Exception as e:
-                st.error(f"Mermaid export error: {str(e)}")
+            else:
+                try:
+                    mermaid_data = export_mermaid(st.session_state.current_diagram)
+                    st.download_button(
+                        "Download as Mermaid",
+                        data=mermaid_data,
+                        file_name="flow_diagram.mmd",
+                        mime="text/plain"
+                    )
+                except Exception as e:
+                    st.error(f"Mermaid export error: {str(e)}")
 
 if __name__ == "__main__":
     main()
